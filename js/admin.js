@@ -1,5 +1,6 @@
 
-const ADMIN_PASSWORD = "xcapital2026";
+const ADMIN_CODE = "4045";
+const ADMIN_PASSWORD = "xcapital4045";
 const STORAGE_KEY = "xc_cartas_contempladas";
 const LEADS_KEY = "xc_leads";
 
@@ -329,8 +330,11 @@ function bindLogin() {
   const loginForm = document.querySelector("#login-form");
   if (!loginForm) return;
 
-  const urlPassword = new URLSearchParams(window.location.search).get("password");
-  if (urlPassword === ADMIN_PASSWORD) {
+  const params = new URLSearchParams(window.location.search);
+  const urlCode = params.get("codigo") || params.get("code") || params.get("accessCode");
+  const urlPassword = params.get("password") || params.get("senha");
+
+  if (urlCode === ADMIN_CODE && urlPassword === ADMIN_PASSWORD) {
     history.replaceState({}, document.title, window.location.pathname);
     openAdmin();
     return;
@@ -344,13 +348,16 @@ function bindLogin() {
   loginForm.addEventListener("submit", function(event) {
     event.preventDefault();
 
+    const codeInput = loginForm.querySelector('input[name="accessCode"]');
     const passwordInput = loginForm.querySelector('input[name="password"]');
+
+    const accessCode = codeInput ? codeInput.value.trim() : "";
     const password = passwordInput ? passwordInput.value.trim() : "";
 
-    if (password === ADMIN_PASSWORD) {
+    if (accessCode === ADMIN_CODE && password === ADMIN_PASSWORD) {
       openAdmin();
     } else {
-      alert("Senha incorreta.");
+      alert("Código de acesso ou senha incorretos.");
     }
   });
 

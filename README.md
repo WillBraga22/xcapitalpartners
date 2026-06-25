@@ -145,3 +145,21 @@ ou
 
 Senha:
 xcapital2026
+
+
+## Acesso do painel v5
+
+O painel agora usa dois campos:
+
+Código de acesso:
+4045
+
+Senha temporária:
+xcapital4045
+
+Acesse:
+/admin
+ou
+/admin.html
+
+Observação: esta ainda é uma validação simples para MVP.

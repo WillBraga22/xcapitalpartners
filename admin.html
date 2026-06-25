@@ -33,9 +33,10 @@
     <div class="container">
       <div class="form-card" id="admin-login">
         <h2>Entrar no painel</h2>
-        <p>Senha inicial do protótipo: xcapital2026.</p>
+        <p>Acesso restrito para cadastro e gestão das cartas contempladas.</p>
         <form id="login-form" class="form-grid">
-          <label class="full">Senha<input type="password" name="password" required></label>
+          <label class="full">Código de acesso<input type="text" name="accessCode" inputmode="numeric" autocomplete="off" required placeholder="Digite o código"></label>
+          <label class="full">Senha<input type="password" name="password" autocomplete="current-password" required placeholder="Digite a senha"></label>
           <div class="full"><button class="button primary" type="submit">Entrar</button></div>
         </form>
       </div>
