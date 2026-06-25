@@ -1,3 +1,4 @@
+
 const ADMIN_PASSWORD = "xcapital2026";
 const STORAGE_KEY = "xc_cartas_contempladas";
 const LEADS_KEY = "xc_leads";
@@ -7,9 +8,9 @@ let supabaseClient = null;
 
 function initSupabase() {
   if (!window.supabase || !window.XC_SUPABASE_CONFIG) return null;
-  const { url, anonKey } = window.XC_SUPABASE_CONFIG;
-  if (!url || !anonKey) return null;
-  supabaseClient = window.supabase.createClient(url, anonKey);
+  const config = window.XC_SUPABASE_CONFIG;
+  if (!config.url || !config.anonKey) return null;
+  supabaseClient = window.supabase.createClient(config.url, config.anonKey);
   return supabaseClient;
 }
 
@@ -19,7 +20,7 @@ function formatCurrency(value) {
 }
 
 function parseMoney(value) {
-  if (value === null || value === undefined) return null;
+  if (value === null || value === undefined || value === "") return null;
   const clean = String(value).replace(/[R$\s.]/g, "").replace(",", ".");
   const number = Number(clean);
   return Number.isFinite(number) ? number : null;
@@ -38,7 +39,6 @@ function toCard(row) {
     uso: row.uso || "",
     observacaoPublica: row.observacao_publica || "",
     ocultarPublico: Boolean(row.ocultar_publico),
-
     nomeDono: row.nome_dono || "",
     telefoneDono: row.telefone_dono || "",
     grupo: row.grupo || "",
@@ -63,7 +63,6 @@ function toCardRow(card) {
     uso: card.uso || "",
     observacao_publica: card.observacaoPublica || "",
     ocultar_publico: Boolean(card.ocultarPublico),
-
     nome_dono: card.nomeDono || null,
     telefone_dono: card.telefoneDono || null,
     grupo: card.grupo || null,
@@ -87,21 +86,22 @@ function getCardsLocal() {
   try {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : getInitialCards();
-  } catch (error) {
+  } catch {
     return getInitialCards();
   }
 }
 
 async function getCards() {
   if (supabaseClient) {
-    const { data, error } = await supabaseClient
+    const result = await supabaseClient
       .from("cartas")
       .select("*")
       .order("criado_em", { ascending: false });
 
-    if (!error && Array.isArray(data)) return data.map(toCard);
-    console.error("Erro ao buscar cartas no Supabase:", error);
-    alert("Não consegui buscar as cartas no Supabase. Confira as tabelas e permissões.");
+    if (!result.error && Array.isArray(result.data)) return result.data.map(toCard);
+
+    console.error("Erro ao buscar cartas no Supabase:", result.error);
+    alert("Erro ao buscar cartas no Supabase. Confirme se você rodou o SQL completo e publicou a versão nova.");
   }
 
   return getCardsLocal();
@@ -116,13 +116,13 @@ async function saveCard(card) {
     const payload = toCardRow(card);
 
     if (editingId) {
-      const { error } = await supabaseClient.from("cartas").update(payload).eq("id", editingId);
-      if (error) throw error;
+      const result = await supabaseClient.from("cartas").update(payload).eq("id", editingId);
+      if (result.error) throw result.error;
       return;
     }
 
-    const { error } = await supabaseClient.from("cartas").insert(payload);
-    if (error) throw error;
+    const result = await supabaseClient.from("cartas").insert(payload);
+    if (result.error) throw result.error;
     return;
   }
 
@@ -138,8 +138,8 @@ async function saveCard(card) {
 
 async function deleteCard(id) {
   if (supabaseClient) {
-    const { error } = await supabaseClient.from("cartas").delete().eq("id", id);
-    if (error) throw error;
+    const result = await supabaseClient.from("cartas").delete().eq("id", id);
+    if (result.error) throw result.error;
     return;
   }
 
@@ -151,8 +151,9 @@ async function updateStatus(id, status, ocultarPublico = null) {
   if (supabaseClient) {
     const payload = { status, atualizado_em: new Date().toISOString() };
     if (ocultarPublico !== null) payload.ocultar_publico = ocultarPublico;
-    const { error } = await supabaseClient.from("cartas").update(payload).eq("id", id);
-    if (error) throw error;
+
+    const result = await supabaseClient.from("cartas").update(payload).eq("id", id);
+    if (result.error) throw result.error;
     return;
   }
 
@@ -165,13 +166,13 @@ async function updateStatus(id, status, ocultarPublico = null) {
 
 async function getLeads() {
   if (supabaseClient) {
-    const { data, error } = await supabaseClient
+    const result = await supabaseClient
       .from("leads")
       .select("*")
       .order("criado_em", { ascending: false });
 
-    if (!error && Array.isArray(data)) return data;
-    console.warn("Erro ao buscar leads:", error);
+    if (!result.error && Array.isArray(result.data)) return result.data;
+    console.warn("Erro ao buscar leads:", result.error);
   }
 
   const stored = localStorage.getItem(LEADS_KEY);
@@ -179,7 +180,7 @@ async function getLeads() {
   try {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -187,6 +188,7 @@ async function getLeads() {
 function getFormCard() {
   const form = document.querySelector("#card-form");
   const formData = new FormData(form);
+
   return {
     tipo: formData.get("tipo"),
     administradora: formData.get("administradora"),
@@ -198,7 +200,6 @@ function getFormCard() {
     uso: formData.get("uso"),
     observacaoPublica: formData.get("observacaoPublica"),
     ocultarPublico: formData.get("ocultarPublico") === "on",
-
     nomeDono: formData.get("nomeDono"),
     telefoneDono: formData.get("telefoneDono"),
     grupo: formData.get("grupo"),
@@ -213,6 +214,7 @@ function getFormCard() {
 
 function fillForm(card) {
   const form = document.querySelector("#card-form");
+
   const fields = {
     tipo: card.tipo,
     administradora: card.administradora,
@@ -233,10 +235,12 @@ function fillForm(card) {
     documentos: card.documentos,
     observacaoInterna: card.observacaoInterna
   };
+
   Object.entries(fields).forEach(([name, value]) => {
     const input = form.elements[name];
     if (input) input.value = value ?? "";
   });
+
   form.elements.ocultarPublico.checked = Boolean(card.ocultarPublico);
   editingId = card.id;
   document.querySelector("#submit-label").textContent = "Salvar alterações";
@@ -249,12 +253,13 @@ function resetForm() {
   document.querySelector("#submit-label").textContent = "Cadastrar carta";
 }
 
-async function renderSummary(cards) {
+function renderSummary(cards) {
   const target = document.querySelector("#admin-summary");
   const available = cards.filter(card => card.status === "Disponível").length;
   const reserved = cards.filter(card => card.status === "Reservada").length;
   const sold = cards.filter(card => card.status === "Vendida").length;
   const hidden = cards.filter(card => card.ocultarPublico).length;
+
   target.innerHTML = `
     <div><strong>${cards.length}</strong><span>cartas totais</span></div>
     <div><strong>${available}</strong><span>disponíveis</span></div>
@@ -266,7 +271,8 @@ async function renderSummary(cards) {
 
 async function renderCardsAdmin() {
   const cards = await getCards();
-  await renderSummary(cards);
+  renderSummary(cards);
+
   const tbody = document.querySelector("#admin-cards");
   tbody.innerHTML = cards.map(card => `
     <tr>
@@ -292,6 +298,7 @@ async function renderCardsAdmin() {
 async function renderLeads() {
   const leads = await getLeads();
   const tbody = document.querySelector("#admin-leads");
+
   tbody.innerHTML = leads.length ? leads.map(lead => `
     <tr>
       <td>${lead.nome || ""}</td>
@@ -307,21 +314,21 @@ async function refreshAdmin() {
   await renderLeads();
 }
 
-function bindLogin() {
-  const loginForm = document.querySelector("#login-form");
+function openAdmin() {
   const loginBox = document.querySelector("#login-box");
   const adminPanel = document.querySelector("#admin-panel");
 
-  if (!loginForm || !loginBox || !adminPanel) return;
+  sessionStorage.setItem("xc_admin_auth", "true");
+  if (loginBox) loginBox.hidden = true;
+  if (adminPanel) adminPanel.hidden = false;
 
-  const openAdmin = () => {
-    sessionStorage.setItem("xc_admin_auth", "true");
-    loginBox.hidden = true;
-    adminPanel.hidden = false;
-    refreshAdmin();
-  };
+  refreshAdmin();
+}
 
-  // Permite entrar também se a URL vier como /admin?password=xcapital2026
+function bindLogin() {
+  const loginForm = document.querySelector("#login-form");
+  if (!loginForm) return;
+
   const urlPassword = new URLSearchParams(window.location.search).get("password");
   if (urlPassword === ADMIN_PASSWORD) {
     history.replaceState({}, document.title, window.location.pathname);
@@ -334,11 +341,11 @@ function bindLogin() {
     return;
   }
 
-  loginForm.addEventListener("submit", event => {
+  loginForm.addEventListener("submit", function(event) {
     event.preventDefault();
-    event.stopPropagation();
 
-    const password = new FormData(loginForm).get("password");
+    const passwordInput = loginForm.querySelector('input[name="password"]');
+    const password = passwordInput ? passwordInput.value.trim() : "";
 
     if (password === ADMIN_PASSWORD) {
       openAdmin();
@@ -347,16 +354,22 @@ function bindLogin() {
     }
   });
 
-  document.querySelector("#logout").addEventListener("click", () => {
-    sessionStorage.removeItem("xc_admin_auth");
-    location.reload();
-  });
+  const logout = document.querySelector("#logout");
+  if (logout) {
+    logout.addEventListener("click", () => {
+      sessionStorage.removeItem("xc_admin_auth");
+      location.reload();
+    });
+  }
 }
 
 function bindForm() {
   const form = document.querySelector("#card-form");
+  if (!form) return;
+
   form.addEventListener("submit", async event => {
     event.preventDefault();
+
     try {
       const card = getFormCard();
       await saveCard(card);
@@ -369,7 +382,8 @@ function bindForm() {
     }
   });
 
-  document.querySelector("#cancel-edit").addEventListener("click", resetForm);
+  const cancel = document.querySelector("#cancel-edit");
+  if (cancel) cancel.addEventListener("click", resetForm);
 }
 
 function bindTableActions() {
@@ -386,6 +400,7 @@ function bindTableActions() {
 
     if (deleteButton) {
       if (!confirm("Tem certeza que deseja excluir esta carta?")) return;
+
       try {
         await deleteCard(deleteButton.dataset.delete);
         await refreshAdmin();
@@ -409,18 +424,24 @@ function bindTableActions() {
 }
 
 function bindTools() {
-  document.querySelector("#reset-data").addEventListener("click", () => {
-    alert("Agora as cartas vêm do Supabase. Para restaurar as cartas iniciais, use o SQL de insert no Supabase.");
-  });
+  const reset = document.querySelector("#reset-data");
+  if (reset) {
+    reset.addEventListener("click", () => {
+      alert("Agora as cartas vêm do Supabase. Para restaurar as cartas iniciais, use o SQL de insert no Supabase.");
+    });
+  }
 
-  document.querySelector("#export-json").addEventListener("click", async () => {
-    const cards = await getCards();
-    const blob = new Blob([JSON.stringify(cards, null, 2)], { type: "application/json" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "cartas-xcapital.json";
-    link.click();
-  });
+  const exportButton = document.querySelector("#export-json");
+  if (exportButton) {
+    exportButton.addEventListener("click", async () => {
+      const cards = await getCards();
+      const blob = new Blob([JSON.stringify(cards, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "cartas-xcapital.json";
+      link.click();
+    });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {

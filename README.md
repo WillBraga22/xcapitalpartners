@@ -112,3 +112,21 @@ Senha:
 xcapital2026
 
 O formulário foi corrigido para não redirecionar para ?password=xcapital2026.
+
+
+## Correção admin v3
+
+Esta versão substitui completamente o JavaScript do painel, corrigindo o problema do botão Entrar não responder.
+
+Teste depois do deploy:
+
+/admin.html
+
+ou
+
+/admin
+
+Senha:
+xcapital2026
+
+Se o navegador carregar cache antigo, use aba anônima ou Ctrl + F5.
