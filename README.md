@@ -96,3 +96,19 @@ Senha MVP:
 xcapital2026
 
 Aviso: o painel desta versão ainda usa senha simples no front-end. Serve para validar o fluxo. A próxima etapa profissional é criar login real com Supabase Auth.
+
+
+## Correção de login v2
+
+Agora o admin funciona tanto em:
+
+/admin.html
+
+quanto em:
+
+/admin
+
+Senha:
+xcapital2026
+
+O formulário foi corrigido para não redirecionar para ?password=xcapital2026.

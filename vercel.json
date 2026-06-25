@@ -1,4 +1,12 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/cartas", "destination": "/cartas.html" },
+    { "source": "/sobre", "destination": "/sobre.html" },
+    { "source": "/solucoes", "destination": "/solucoes.html" },
+    { "source": "/contato", "destination": "/contato.html" },
+    { "source": "/venda-sua-cota", "destination": "/venda-sua-cota.html" }
+  ]
 }

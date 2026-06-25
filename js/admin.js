@@ -312,20 +312,36 @@ function bindLogin() {
   const loginBox = document.querySelector("#login-box");
   const adminPanel = document.querySelector("#admin-panel");
 
-  if (sessionStorage.getItem("xc_admin_auth") === "true") {
+  if (!loginForm || !loginBox || !adminPanel) return;
+
+  const openAdmin = () => {
+    sessionStorage.setItem("xc_admin_auth", "true");
     loginBox.hidden = true;
     adminPanel.hidden = false;
     refreshAdmin();
+  };
+
+  // Permite entrar também se a URL vier como /admin?password=xcapital2026
+  const urlPassword = new URLSearchParams(window.location.search).get("password");
+  if (urlPassword === ADMIN_PASSWORD) {
+    history.replaceState({}, document.title, window.location.pathname);
+    openAdmin();
+    return;
+  }
+
+  if (sessionStorage.getItem("xc_admin_auth") === "true") {
+    openAdmin();
+    return;
   }
 
   loginForm.addEventListener("submit", event => {
     event.preventDefault();
+    event.stopPropagation();
+
     const password = new FormData(loginForm).get("password");
+
     if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem("xc_admin_auth", "true");
-      loginBox.hidden = true;
-      adminPanel.hidden = false;
-      refreshAdmin();
+      openAdmin();
     } else {
       alert("Senha incorreta.");
     }
