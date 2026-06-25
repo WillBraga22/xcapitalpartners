@@ -315,7 +315,7 @@ async function refreshAdmin() {
 }
 
 function openAdmin() {
-  const loginBox = document.querySelector("#login-box");
+  const loginBox = document.querySelector("#admin-login");
   const adminPanel = document.querySelector("#admin-panel");
 
   sessionStorage.setItem("xc_admin_auth", "true");
@@ -444,7 +444,16 @@ function bindTools() {
   }
 }
 
+
+function initAdminMobileMenu() {
+  const button = document.querySelector("[data-menu-button]");
+  const nav = document.querySelector("[data-nav]");
+  if (!button || !nav) return;
+  button.addEventListener("click", () => nav.classList.toggle("open"));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  initAdminMobileMenu();
   initSupabase();
   bindLogin();
   bindForm();

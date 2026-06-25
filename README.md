@@ -130,3 +130,18 @@ Senha:
 xcapital2026
 
 Se o navegador carregar cache antigo, use aba anônima ou Ctrl + F5.
+
+
+## Correção admin v4
+
+O painel não entrava porque admin.html carregava site.js e admin.js juntos.
+Os dois arquivos tinham variáveis com os mesmos nomes, então o navegador bloqueava o admin.js.
+Nesta versão, admin.html não carrega mais site.js e o menu mobile foi adicionado diretamente no admin.js.
+
+Acesse:
+/admin
+ou
+/admin.html
+
+Senha:
+xcapital2026
