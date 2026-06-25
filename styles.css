@@ -1278,3 +1278,21 @@ td small {
     display: block;
   }
 }
+
+
+/* Correção da logo do WhatsApp v6.1 */
+.contact-item .contact-icon[alt="WhatsApp"],
+.floating-whatsapp img[alt="WhatsApp"] {
+  border-radius: 0;
+  background: transparent;
+}
+
+.contact-item .contact-icon[alt="WhatsApp"] {
+  width: 24px;
+  height: 24px;
+}
+
+.floating-whatsapp img[alt="WhatsApp"] {
+  width: 22px;
+  height: 22px;
+}

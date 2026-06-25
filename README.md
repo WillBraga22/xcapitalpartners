@@ -185,3 +185,12 @@ Novidades:
 Acesso admin:
 Código: 4045
 Senha: xcapital4045
+
+
+## Correção v6.1
+
+Substituída a imagem do WhatsApp por uma logo correta em todos os pontos do site, incluindo:
+
+- área de contato
+- rodapé
+- botão flutuante
