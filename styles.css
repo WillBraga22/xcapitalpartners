@@ -750,19 +750,29 @@ td small {
 }
 
 /* Logo atualizada em PNG transparente */
+
 .logo-box {
-  width: 86px;
-  height: 62px;
+  width: 58px;
+  height: 42px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   overflow: visible;
+  flex: 0 0 auto;
 }
 
 .logo-box img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.brand-text strong {
+  font-size: 1.08rem;
+}
+
+.brand-text span {
+  font-size: 0.8rem;
 }
 
 .hero-logo {
@@ -778,10 +788,42 @@ td small {
   margin: 0 auto;
 }
 
+.contact-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+}
+
+.contact-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 5px;
+  flex: 0 0 auto;
+}
+
+.footer-legal {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+
+.footer-legal p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 760px) {
   .logo-box {
-    width: 70px;
-    height: 52px;
+    width: 52px;
+    height: 38px;
   }
 
   .hero-logo {
