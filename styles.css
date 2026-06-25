@@ -1296,3 +1296,42 @@ td small {
   width: 22px;
   height: 22px;
 }
+
+
+/* Botão flutuante WhatsApp somente ícone v6.2 */
+.floating-whatsapp {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  background: #1e7d45;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.22);
+}
+
+.floating-whatsapp img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+@media (max-width: 760px) {
+  .floating-whatsapp {
+    left: auto;
+    right: 14px;
+    bottom: 14px;
+    width: 56px;
+    height: 56px;
+  }
+
+  body {
+    padding-bottom: 0;
+  }
+}

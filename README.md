@@ -194,3 +194,8 @@ Substituída a imagem do WhatsApp por uma logo correta em todos os pontos do sit
 - área de contato
 - rodapé
 - botão flutuante
+
+
+## Ajuste v6.2
+
+O botão flutuante do WhatsApp agora aparece somente como ícone flutuante, ocupando menos espaço na tela, especialmente no celular.
