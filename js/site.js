@@ -1,6 +1,16 @@
 const STORAGE_KEY = "xc_cartas_contempladas";
 const LEADS_KEY = "xc_leads";
 
+let supabaseClient = null;
+
+function initSupabase() {
+  if (!window.supabase || !window.XC_SUPABASE_CONFIG) return null;
+  const { url, anonKey } = window.XC_SUPABASE_CONFIG;
+  if (!url || !anonKey) return null;
+  supabaseClient = window.supabase.createClient(url, anonKey);
+  return supabaseClient;
+}
+
 function formatCurrency(value) {
   const number = Number(value || 0);
   return number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -14,7 +24,34 @@ function getInitialCards() {
   return JSON.parse(JSON.stringify(window.XC_INITIAL_CARDS || []));
 }
 
-function getCards() {
+function toCard(row) {
+  return {
+    id: row.id,
+    tipo: row.tipo || "",
+    administradora: row.administradora || "",
+    credito: Number(row.credito || 0),
+    entrada: Number(row.entrada || 0),
+    parcelas: row.parcelas || "",
+    parcelaBusca: Number(row.parcela_busca || 0),
+    status: row.status || "Disponível",
+    uso: row.uso || "",
+    observacaoPublica: row.observacao_publica || "",
+    ocultarPublico: Boolean(row.ocultar_publico)
+  };
+}
+
+function toLeadRow(lead) {
+  return {
+    nome: lead.nome,
+    whatsapp: lead.whatsapp,
+    carta_id: lead.cartaId || null,
+    carta_resumo: lead.carta || "",
+    origem: "site",
+    status: "Novo"
+  };
+}
+
+function getCardsLocal() {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) return getInitialCards();
   try {
@@ -25,11 +62,21 @@ function getCards() {
   }
 }
 
-function saveCards(cards) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+async function getCards() {
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient
+      .from("cartas")
+      .select("*")
+      .order("criado_em", { ascending: false });
+
+    if (!error && Array.isArray(data)) return data.map(toCard);
+    console.warn("Erro ao buscar cartas no Supabase. Usando dados locais.", error);
+  }
+
+  return getCardsLocal();
 }
 
-function getLeads() {
+function getLeadsLocal() {
   const stored = localStorage.getItem(LEADS_KEY);
   if (!stored) return [];
   try {
@@ -40,8 +87,14 @@ function getLeads() {
   }
 }
 
-function saveLead(lead) {
-  const leads = getLeads();
+async function saveLead(lead) {
+  if (supabaseClient) {
+    const { error } = await supabaseClient.from("leads").insert(toLeadRow(lead));
+    if (!error) return;
+    console.warn("Erro ao salvar lead no Supabase. Salvando localmente.", error);
+  }
+
+  const leads = getLeadsLocal();
   leads.unshift({ ...lead, criadoEm: new Date().toISOString() });
   localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
 }
@@ -54,22 +107,29 @@ function cardMessage(card) {
   return `Olá, vi no site da X Capital a carta contemplada de ${formatCurrency(card.credito)} com entrada de ${formatCurrency(card.entrada)}. Quero mais detalhes.`;
 }
 
-function renderFeaturedCards(limit = 3) {
+async function renderFeaturedCards(limit = 3) {
   const target = document.querySelector("[data-featured-cards]");
   if (!target) return;
-  const cards = getCards().filter(card => !card.ocultarPublico && card.status !== "Vendida").slice(0, limit);
+  target.innerHTML = `<p class="empty-state">Carregando cartas...</p>`;
+
+  const cards = (await getCards())
+    .filter(card => !card.ocultarPublico && card.status !== "Vendida")
+    .slice(0, limit);
+
   if (!cards.length) {
     target.innerHTML = `<p class="empty-state">Nenhuma carta disponível no momento.</p>`;
     return;
   }
+
   target.innerHTML = cards.map(renderCard).join("");
 }
 
-function renderCardsPage() {
+async function renderCardsPage() {
   const target = document.querySelector("[data-cards-list]");
   if (!target) return;
+  target.innerHTML = `<p class="empty-state">Carregando cartas...</p>`;
 
-  const cards = getCards();
+  const cards = await getCards();
   const filters = {
     search: document.querySelector("#search")?.value || "",
     tipo: document.querySelector("#tipo")?.value || "",
@@ -138,17 +198,28 @@ function renderCard(card) {
 }
 
 function bindLeadButtons() {
-  document.addEventListener("click", event => {
+  document.addEventListener("click", async event => {
     const button = event.target.closest("[data-lead-card]");
     if (!button) return;
-    const cards = getCards();
-    const card = cards.find(item => item.id === button.dataset.leadCard);
+
+    const cards = await getCards();
+    const card = cards.find(item => String(item.id) === String(button.dataset.leadCard));
     if (!card) return;
+
     const name = prompt("Qual seu nome?");
     if (!name) return;
+
     const whatsapp = prompt("Qual seu WhatsApp?");
     if (!whatsapp) return;
-    saveLead({ nome: name, whatsapp, cartaId: card.id, carta: `${card.administradora} ${formatCurrency(card.credito)}`, status: "Novo" });
+
+    await saveLead({
+      nome: name,
+      whatsapp,
+      cartaId: card.id,
+      carta: `${card.administradora} ${formatCurrency(card.credito)}`,
+      status: "Novo"
+    });
+
     window.open(buildWhatsappLink(cardMessage(card)), "_blank");
   });
 }
@@ -197,6 +268,7 @@ function initMobileMenu() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initSupabase();
   initMobileMenu();
   renderFeaturedCards();
   renderCardsPage();

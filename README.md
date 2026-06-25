@@ -75,3 +75,24 @@ Esta versão usa os arquivos em PNG transparente:
 - `assets/logo-xcapital-hs-branca.png` para áreas escuras.
 
 Para publicar no Vercel, substitua os arquivos do projeto atual por esta pasta e faça novo deploy.
+
+
+## Versão Supabase v1
+
+Esta versão já está configurada com:
+
+SUPABASE_URL=https://nwlkhsmliuljprdbuaiv.supabase.co
+
+Para funcionar, execute no SQL Editor do Supabase o arquivo:
+
+database/supabase_mvp_completo.sql
+
+Depois suba esta pasta na Vercel.
+
+Painel:
+admin.html
+
+Senha MVP:
+xcapital2026
+
+Aviso: o painel desta versão ainda usa senha simples no front-end. Serve para validar o fluxo. A próxima etapa profissional é criar login real com Supabase Auth.

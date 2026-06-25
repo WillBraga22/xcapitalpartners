@@ -1,227 +1,416 @@
-const ADMIN_KEY = "xc_admin_logged";
+const ADMIN_PASSWORD = "xcapital2026";
+const STORAGE_KEY = "xc_cartas_contempladas";
+const LEADS_KEY = "xc_leads";
+
 let editingId = null;
+let supabaseClient = null;
 
-function requireLogin() {
-  const login = document.querySelector("#admin-login");
-  const panel = document.querySelector("#admin-panel");
-  if (!login || !panel) return;
-  const logged = sessionStorage.getItem(ADMIN_KEY) === "true";
-  login.hidden = logged;
-  panel.hidden = !logged;
-  if (logged) renderAdmin();
+function initSupabase() {
+  if (!window.supabase || !window.XC_SUPABASE_CONFIG) return null;
+  const { url, anonKey } = window.XC_SUPABASE_CONFIG;
+  if (!url || !anonKey) return null;
+  supabaseClient = window.supabase.createClient(url, anonKey);
+  return supabaseClient;
 }
 
-function bindLogin() {
-  const form = document.querySelector("#login-form");
-  if (!form) return;
-  form.addEventListener("submit", event => {
-    event.preventDefault();
-    const password = new FormData(form).get("password");
-    if (password === window.XC_CONFIG.adminPassword) {
-      sessionStorage.setItem(ADMIN_KEY, "true");
-      requireLogin();
-    } else {
-      alert("Senha incorreta.");
-    }
-  });
+function formatCurrency(value) {
+  const number = Number(value || 0);
+  return number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function bindLogout() {
-  const button = document.querySelector("#logout");
-  if (!button) return;
-  button.addEventListener("click", () => {
-    sessionStorage.removeItem(ADMIN_KEY);
-    requireLogin();
-  });
+function parseMoney(value) {
+  if (value === null || value === undefined) return null;
+  const clean = String(value).replace(/[R$\s.]/g, "").replace(",", ".");
+  const number = Number(clean);
+  return Number.isFinite(number) ? number : null;
 }
 
-function formToCard(form) {
-  const data = new FormData(form);
+function toCard(row) {
   return {
-    id: editingId || `${normalizeText(data.get("administradora") || "carta")}-${Date.now()}`,
-    tipo: data.get("tipo") || "Imóvel",
-    administradora: data.get("administradora") || "",
-    credito: Number(String(data.get("credito") || "0").replace(/\./g, "").replace(",", ".")),
-    entrada: Number(String(data.get("entrada") || "0").replace(/\./g, "").replace(",", ".")),
-    parcelas: data.get("parcelas") || "",
-    parcelaBusca: Number(String(data.get("parcelaBusca") || "0").replace(/\./g, "").replace(",", ".")),
-    status: data.get("status") || "Disponível",
-    uso: data.get("uso") || "",
-    observacaoPublica: data.get("observacaoPublica") || "",
-    ocultarPublico: data.get("ocultarPublico") === "on",
-    nomeDono: data.get("nomeDono") || "",
-    telefoneDono: data.get("telefoneDono") || "",
-    grupo: data.get("grupo") || "",
-    cota: data.get("cota") || "",
-    valorCompra: data.get("valorCompra") || "",
-    comissao: data.get("comissao") || "",
-    responsavel: data.get("responsavel") || "",
-    observacaoInterna: data.get("observacaoInterna") || "",
-    documentos: data.get("documentos") || "",
-    criadoEm: editingId ? (getCards().find(card => card.id === editingId)?.criadoEm || new Date().toISOString()) : new Date().toISOString()
+    id: row.id,
+    tipo: row.tipo || "",
+    administradora: row.administradora || "",
+    credito: Number(row.credito || 0),
+    entrada: Number(row.entrada || 0),
+    parcelas: row.parcelas || "",
+    parcelaBusca: Number(row.parcela_busca || 0),
+    status: row.status || "Disponível",
+    uso: row.uso || "",
+    observacaoPublica: row.observacao_publica || "",
+    ocultarPublico: Boolean(row.ocultar_publico),
+
+    nomeDono: row.nome_dono || "",
+    telefoneDono: row.telefone_dono || "",
+    grupo: row.grupo || "",
+    cota: row.cota || "",
+    valorCompra: row.valor_compra || "",
+    comissao: row.comissao || "",
+    responsavel: row.responsavel || "",
+    documentos: row.documentos || "",
+    observacaoInterna: row.observacao_interna || ""
   };
 }
 
-function bindAdminForm() {
-  const form = document.querySelector("#card-form");
-  if (!form) return;
-  form.addEventListener("submit", event => {
-    event.preventDefault();
-    const nextCard = formToCard(form);
-    const cards = getCards();
-    const updated = editingId
-      ? cards.map(card => card.id === editingId ? nextCard : card)
-      : [nextCard, ...cards];
-    saveCards(updated);
-    editingId = null;
-    form.reset();
-    document.querySelector("#submit-label").textContent = "Cadastrar carta";
-    renderAdmin();
-  });
+function toCardRow(card) {
+  return {
+    tipo: card.tipo,
+    administradora: card.administradora,
+    credito: Number(card.credito || 0),
+    entrada: Number(card.entrada || 0),
+    parcelas: card.parcelas,
+    parcela_busca: Number(card.parcelaBusca || 0),
+    status: card.status || "Disponível",
+    uso: card.uso || "",
+    observacao_publica: card.observacaoPublica || "",
+    ocultar_publico: Boolean(card.ocultarPublico),
 
-  const cancel = document.querySelector("#cancel-edit");
-  if (cancel) {
-    cancel.addEventListener("click", () => {
-      editingId = null;
-      form.reset();
-      document.querySelector("#submit-label").textContent = "Cadastrar carta";
-    });
+    nome_dono: card.nomeDono || null,
+    telefone_dono: card.telefoneDono || null,
+    grupo: card.grupo || null,
+    cota: card.cota || null,
+    valor_compra: parseMoney(card.valorCompra),
+    comissao: parseMoney(card.comissao),
+    responsavel: card.responsavel || null,
+    documentos: card.documentos || null,
+    observacao_interna: card.observacaoInterna || null,
+    atualizado_em: new Date().toISOString()
+  };
+}
+
+function getInitialCards() {
+  return JSON.parse(JSON.stringify(window.XC_INITIAL_CARDS || []));
+}
+
+function getCardsLocal() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return getInitialCards();
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : getInitialCards();
+  } catch (error) {
+    return getInitialCards();
   }
 }
 
-function setForm(card) {
+async function getCards() {
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient
+      .from("cartas")
+      .select("*")
+      .order("criado_em", { ascending: false });
+
+    if (!error && Array.isArray(data)) return data.map(toCard);
+    console.error("Erro ao buscar cartas no Supabase:", error);
+    alert("Não consegui buscar as cartas no Supabase. Confira as tabelas e permissões.");
+  }
+
+  return getCardsLocal();
+}
+
+function saveCardsLocal(cards) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+}
+
+async function saveCard(card) {
+  if (supabaseClient) {
+    const payload = toCardRow(card);
+
+    if (editingId) {
+      const { error } = await supabaseClient.from("cartas").update(payload).eq("id", editingId);
+      if (error) throw error;
+      return;
+    }
+
+    const { error } = await supabaseClient.from("cartas").insert(payload);
+    if (error) throw error;
+    return;
+  }
+
+  const cards = getCardsLocal();
+  if (editingId) {
+    const index = cards.findIndex(item => item.id === editingId);
+    if (index >= 0) cards[index] = { ...cards[index], ...card, id: editingId };
+  } else {
+    cards.unshift({ ...card, id: crypto.randomUUID() });
+  }
+  saveCardsLocal(cards);
+}
+
+async function deleteCard(id) {
+  if (supabaseClient) {
+    const { error } = await supabaseClient.from("cartas").delete().eq("id", id);
+    if (error) throw error;
+    return;
+  }
+
+  const cards = getCardsLocal().filter(card => card.id !== id);
+  saveCardsLocal(cards);
+}
+
+async function updateStatus(id, status, ocultarPublico = null) {
+  if (supabaseClient) {
+    const payload = { status, atualizado_em: new Date().toISOString() };
+    if (ocultarPublico !== null) payload.ocultar_publico = ocultarPublico;
+    const { error } = await supabaseClient.from("cartas").update(payload).eq("id", id);
+    if (error) throw error;
+    return;
+  }
+
+  const cards = getCardsLocal().map(card => {
+    if (card.id !== id) return card;
+    return { ...card, status, ocultarPublico: ocultarPublico === null ? card.ocultarPublico : ocultarPublico };
+  });
+  saveCardsLocal(cards);
+}
+
+async function getLeads() {
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient
+      .from("leads")
+      .select("*")
+      .order("criado_em", { ascending: false });
+
+    if (!error && Array.isArray(data)) return data;
+    console.warn("Erro ao buscar leads:", error);
+  }
+
+  const stored = localStorage.getItem(LEADS_KEY);
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function getFormCard() {
   const form = document.querySelector("#card-form");
-  if (!form) return;
+  const formData = new FormData(form);
+  return {
+    tipo: formData.get("tipo"),
+    administradora: formData.get("administradora"),
+    credito: parseMoney(formData.get("credito")) || 0,
+    entrada: parseMoney(formData.get("entrada")) || 0,
+    parcelas: formData.get("parcelas"),
+    parcelaBusca: parseMoney(formData.get("parcelaBusca")) || 0,
+    status: formData.get("status"),
+    uso: formData.get("uso"),
+    observacaoPublica: formData.get("observacaoPublica"),
+    ocultarPublico: formData.get("ocultarPublico") === "on",
+
+    nomeDono: formData.get("nomeDono"),
+    telefoneDono: formData.get("telefoneDono"),
+    grupo: formData.get("grupo"),
+    cota: formData.get("cota"),
+    valorCompra: formData.get("valorCompra"),
+    comissao: formData.get("comissao"),
+    responsavel: formData.get("responsavel"),
+    documentos: formData.get("documentos"),
+    observacaoInterna: formData.get("observacaoInterna")
+  };
+}
+
+function fillForm(card) {
+  const form = document.querySelector("#card-form");
+  const fields = {
+    tipo: card.tipo,
+    administradora: card.administradora,
+    credito: card.credito,
+    entrada: card.entrada,
+    parcelas: card.parcelas,
+    parcelaBusca: card.parcelaBusca,
+    status: card.status,
+    uso: card.uso,
+    observacaoPublica: card.observacaoPublica,
+    nomeDono: card.nomeDono,
+    telefoneDono: card.telefoneDono,
+    grupo: card.grupo,
+    cota: card.cota,
+    valorCompra: card.valorCompra,
+    comissao: card.comissao,
+    responsavel: card.responsavel,
+    documentos: card.documentos,
+    observacaoInterna: card.observacaoInterna
+  };
+  Object.entries(fields).forEach(([name, value]) => {
+    const input = form.elements[name];
+    if (input) input.value = value ?? "";
+  });
+  form.elements.ocultarPublico.checked = Boolean(card.ocultarPublico);
   editingId = card.id;
-  form.tipo.value = card.tipo || "Imóvel";
-  form.administradora.value = card.administradora || "";
-  form.credito.value = String(card.credito || "").replace(".", ",");
-  form.entrada.value = String(card.entrada || "").replace(".", ",");
-  form.parcelas.value = card.parcelas || "";
-  form.parcelaBusca.value = String(card.parcelaBusca || "").replace(".", ",");
-  form.status.value = card.status || "Disponível";
-  form.uso.value = card.uso || "";
-  form.observacaoPublica.value = card.observacaoPublica || "";
-  form.ocultarPublico.checked = Boolean(card.ocultarPublico);
-  form.nomeDono.value = card.nomeDono || "";
-  form.telefoneDono.value = card.telefoneDono || "";
-  form.grupo.value = card.grupo || "";
-  form.cota.value = card.cota || "";
-  form.valorCompra.value = card.valorCompra || "";
-  form.comissao.value = card.comissao || "";
-  form.responsavel.value = card.responsavel || "";
-  form.observacaoInterna.value = card.observacaoInterna || "";
-  form.documentos.value = card.documentos || "";
   document.querySelector("#submit-label").textContent = "Salvar alterações";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function renderAdmin() {
-  const cards = getCards();
-  const leads = getLeads();
-  const list = document.querySelector("#admin-cards");
-  const leadList = document.querySelector("#admin-leads");
-  const summary = document.querySelector("#admin-summary");
-
-  if (summary) {
-    const disponiveis = cards.filter(card => card.status === "Disponível" && !card.ocultarPublico).length;
-    const reservadas = cards.filter(card => card.status === "Reservada").length;
-    const vendidas = cards.filter(card => card.status === "Vendida").length;
-    summary.innerHTML = `
-      <div><strong>${cards.length}</strong><span>cartas cadastradas</span></div>
-      <div><strong>${disponiveis}</strong><span>disponíveis</span></div>
-      <div><strong>${reservadas}</strong><span>reservadas</span></div>
-      <div><strong>${vendidas}</strong><span>vendidas</span></div>
-      <div><strong>${leads.length}</strong><span>leads locais</span></div>
-    `;
-  }
-
-  if (list) {
-    list.innerHTML = cards.length ? cards.map(card => `
-      <tr>
-        <td>${card.administradora}<br><small>${card.tipo}</small></td>
-        <td>${formatCurrency(card.credito)}</td>
-        <td>${formatCurrency(card.entrada)}</td>
-        <td>${card.parcelas}</td>
-        <td><span class="status ${normalizeText(card.status).replace(/\s+/g, "-")}">${card.status}</span></td>
-        <td>${card.ocultarPublico ? "Oculta" : "Visível"}</td>
-        <td class="table-actions">
-          <button type="button" data-edit="${card.id}">Editar</button>
-          <button type="button" data-status="${card.id}" data-next="Reservada">Reservar</button>
-          <button type="button" data-status="${card.id}" data-next="Vendida">Vender</button>
-          <button type="button" data-delete="${card.id}">Excluir</button>
-        </td>
-      </tr>
-    `).join("") : `<tr><td colspan="7">Nenhuma carta cadastrada.</td></tr>`;
-  }
-
-  if (leadList) {
-    leadList.innerHTML = leads.length ? leads.map(lead => `
-      <tr>
-        <td>${lead.nome}</td>
-        <td>${lead.whatsapp}</td>
-        <td>${lead.carta}</td>
-        <td>${new Date(lead.criadoEm).toLocaleString("pt-BR")}</td>
-      </tr>
-    `).join("") : `<tr><td colspan="4">Nenhum lead salvo neste navegador.</td></tr>`;
-  }
+function resetForm() {
+  document.querySelector("#card-form").reset();
+  editingId = null;
+  document.querySelector("#submit-label").textContent = "Cadastrar carta";
 }
 
-function bindAdminTable() {
-  document.addEventListener("click", event => {
-    const edit = event.target.closest("[data-edit]");
-    const status = event.target.closest("[data-status]");
-    const remove = event.target.closest("[data-delete]");
+async function renderSummary(cards) {
+  const target = document.querySelector("#admin-summary");
+  const available = cards.filter(card => card.status === "Disponível").length;
+  const reserved = cards.filter(card => card.status === "Reservada").length;
+  const sold = cards.filter(card => card.status === "Vendida").length;
+  const hidden = cards.filter(card => card.ocultarPublico).length;
+  target.innerHTML = `
+    <div><strong>${cards.length}</strong><span>cartas totais</span></div>
+    <div><strong>${available}</strong><span>disponíveis</span></div>
+    <div><strong>${reserved}</strong><span>reservadas</span></div>
+    <div><strong>${sold}</strong><span>vendidas</span></div>
+    <div><strong>${hidden}</strong><span>ocultas</span></div>
+  `;
+}
 
-    if (edit) {
-      const card = getCards().find(item => item.id === edit.dataset.edit);
-      if (card) setForm(card);
+async function renderCardsAdmin() {
+  const cards = await getCards();
+  await renderSummary(cards);
+  const tbody = document.querySelector("#admin-cards");
+  tbody.innerHTML = cards.map(card => `
+    <tr>
+      <td><strong>${card.administradora}</strong><br><small>${card.tipo} | ${card.uso || "Sem uso informado"}</small></td>
+      <td>${formatCurrency(card.credito)}</td>
+      <td>${formatCurrency(card.entrada)}</td>
+      <td>${card.parcelas}</td>
+      <td>${card.status}</td>
+      <td>${card.ocultarPublico ? "Oculta" : "Visível"}</td>
+      <td>
+        <div class="table-actions">
+          <button type="button" data-edit="${card.id}">Editar</button>
+          <button type="button" data-status="${card.id}" data-new-status="Disponível">Disponível</button>
+          <button type="button" data-status="${card.id}" data-new-status="Reservada">Reservar</button>
+          <button type="button" data-status="${card.id}" data-new-status="Vendida" data-hide="true">Vendida</button>
+          <button type="button" data-delete="${card.id}">Excluir</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+async function renderLeads() {
+  const leads = await getLeads();
+  const tbody = document.querySelector("#admin-leads");
+  tbody.innerHTML = leads.length ? leads.map(lead => `
+    <tr>
+      <td>${lead.nome || ""}</td>
+      <td>${lead.whatsapp || ""}</td>
+      <td>${lead.carta_resumo || lead.carta || ""}</td>
+      <td>${lead.criado_em || lead.criadoEm ? new Date(lead.criado_em || lead.criadoEm).toLocaleString("pt-BR") : ""}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="4">Nenhum lead salvo ainda.</td></tr>`;
+}
+
+async function refreshAdmin() {
+  await renderCardsAdmin();
+  await renderLeads();
+}
+
+function bindLogin() {
+  const loginForm = document.querySelector("#login-form");
+  const loginBox = document.querySelector("#login-box");
+  const adminPanel = document.querySelector("#admin-panel");
+
+  if (sessionStorage.getItem("xc_admin_auth") === "true") {
+    loginBox.hidden = true;
+    adminPanel.hidden = false;
+    refreshAdmin();
+  }
+
+  loginForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const password = new FormData(loginForm).get("password");
+    if (password === ADMIN_PASSWORD) {
+      sessionStorage.setItem("xc_admin_auth", "true");
+      loginBox.hidden = true;
+      adminPanel.hidden = false;
+      refreshAdmin();
+    } else {
+      alert("Senha incorreta.");
+    }
+  });
+
+  document.querySelector("#logout").addEventListener("click", () => {
+    sessionStorage.removeItem("xc_admin_auth");
+    location.reload();
+  });
+}
+
+function bindForm() {
+  const form = document.querySelector("#card-form");
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      const card = getFormCard();
+      await saveCard(card);
+      resetForm();
+      await refreshAdmin();
+      alert("Carta salva com sucesso.");
+    } catch (error) {
+      console.error(error);
+      alert(`Erro ao salvar carta: ${error.message || "verifique as políticas do Supabase."}`);
+    }
+  });
+
+  document.querySelector("#cancel-edit").addEventListener("click", resetForm);
+}
+
+function bindTableActions() {
+  document.addEventListener("click", async event => {
+    const editButton = event.target.closest("[data-edit]");
+    const deleteButton = event.target.closest("[data-delete]");
+    const statusButton = event.target.closest("[data-status]");
+
+    if (editButton) {
+      const cards = await getCards();
+      const card = cards.find(item => String(item.id) === String(editButton.dataset.edit));
+      if (card) fillForm(card);
     }
 
-    if (status) {
-      const cards = getCards().map(card => card.id === status.dataset.status ? { ...card, status: status.dataset.next, ocultarPublico: status.dataset.next === "Vendida" ? true : card.ocultarPublico } : card);
-      saveCards(cards);
-      renderAdmin();
+    if (deleteButton) {
+      if (!confirm("Tem certeza que deseja excluir esta carta?")) return;
+      try {
+        await deleteCard(deleteButton.dataset.delete);
+        await refreshAdmin();
+      } catch (error) {
+        console.error(error);
+        alert(`Erro ao excluir carta: ${error.message || "verifique as políticas do Supabase."}`);
+      }
     }
 
-    if (remove) {
-      if (!confirm("Tem certeza que deseja excluir esta carta deste navegador?")) return;
-      const cards = getCards().filter(card => card.id !== remove.dataset.delete);
-      saveCards(cards);
-      renderAdmin();
+    if (statusButton) {
+      try {
+        const hide = statusButton.dataset.hide === "true" ? true : null;
+        await updateStatus(statusButton.dataset.status, statusButton.dataset.newStatus, hide);
+        await refreshAdmin();
+      } catch (error) {
+        console.error(error);
+        alert(`Erro ao atualizar status: ${error.message || "verifique as políticas do Supabase."}`);
+      }
     }
   });
 }
 
 function bindTools() {
-  const reset = document.querySelector("#reset-data");
-  if (reset) {
-    reset.addEventListener("click", () => {
-      if (!confirm("Restaurar as cartas iniciais?")) return;
-      localStorage.removeItem("xc_cartas_contempladas");
-      renderAdmin();
-    });
-  }
+  document.querySelector("#reset-data").addEventListener("click", () => {
+    alert("Agora as cartas vêm do Supabase. Para restaurar as cartas iniciais, use o SQL de insert no Supabase.");
+  });
 
-  const exportButton = document.querySelector("#export-json");
-  if (exportButton) {
-    exportButton.addEventListener("click", () => {
-      const payload = JSON.stringify({ cartas: getCards(), leads: getLeads() }, null, 2);
-      const blob = new Blob([payload], { type: "application/json" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "xcapital-cartas-leads.json";
-      link.click();
-      URL.revokeObjectURL(link.href);
-    });
-  }
+  document.querySelector("#export-json").addEventListener("click", async () => {
+    const cards = await getCards();
+    const blob = new Blob([JSON.stringify(cards, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "cartas-xcapital.json";
+    link.click();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initSupabase();
   bindLogin();
-  bindLogout();
-  bindAdminForm();
-  bindAdminTable();
+  bindForm();
+  bindTableActions();
   bindTools();
-  requireLogin();
 });
