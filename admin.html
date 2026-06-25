@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel interno | X Capital Partners</title>
+  <meta name="description" content="X Capital Partners, assessoria especializada em consórcios, cartas contempladas e estratégias de crédito.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="header">
+  <div class="container header-inner">
+    <a class="logo-wrap" href="index.html" aria-label="X Capital Partners">
+      <span class="logo-box"><img src="assets/logo-xcapital-hs.jpeg" alt="X Capital Partners e HS Consórcios"></span>
+      <span class="brand-text"><strong>X Capital Partners</strong><span>Corretor autorizado HS Consórcios</span></span>
+    </a>
+    <button class="menu-button" type="button" data-menu-button>Menu</button>
+    <nav class="nav" data-nav><a href="index.html" class="">Início</a><a href="sobre.html" class="">Sobre</a><a href="solucoes.html" class="">Soluções</a><a href="cartas.html" class="">Cartas Contempladas</a><a href="venda-sua-cota.html" class="">Venda sua cota</a><a href="contato.html" class="">Contato</a><a class="button primary" href="https://wa.me/5514998088300?text=Ol%C3%A1%2C%20vim%20pelo%20site%20da%20X%20Capital.%20Quero%20falar%20com%20um%20consultor." target="_blank" rel="noopener">WhatsApp</a></nav>
+  </div>
+</header>
+<main>
+  <section class="page-title">
+    <div class="container">
+      <span class="eyebrow">Painel interno</span>
+      <h1>Cadastro de cartas contempladas.</h1>
+      <p>Área para cadastrar, editar, reservar, vender e ocultar cartas da vitrine pública.</p>
+    </div>
+  </section>
+  <section class="section" style="padding-top:24px;">
+    <div class="container">
+      <div class="form-card" id="admin-login">
+        <h2>Entrar no painel</h2>
+        <p>Senha inicial do protótipo: xcapital2026. Altere no arquivo js/data.js antes de publicar.</p>
+        <form id="login-form" class="form-grid">
+          <label class="full">Senha<input type="password" name="password" required></label>
+          <div class="full"><button class="button primary" type="submit">Entrar</button></div>
+        </form>
+      </div>
+
+      <div id="admin-panel" hidden>
+        <div class="admin-summary" id="admin-summary"></div>
+        <div class="admin-tools"><button id="logout" type="button">Sair</button><button id="reset-data" type="button">Restaurar cartas iniciais</button><button id="export-json" type="button">Exportar JSON</button></div>
+        <div class="form-card">
+          <h2>Nova carta</h2>
+          <form id="card-form" class="form-grid">
+            <label>Tipo<select name="tipo"><option>Imóvel</option><option>Veículo</option><option>Rural</option><option>Capital de giro</option></select></label>
+            <label>Administradora<input name="administradora" required></label>
+            <label>Crédito<input name="credito" placeholder="534087,00" required></label>
+            <label>Entrada<input name="entrada" placeholder="186900,00" required></label>
+            <label class="full">Parcelas<input name="parcelas" placeholder="126x de R$ 6.057,00" required></label>
+            <label>Parcela para filtro<input name="parcelaBusca" placeholder="6057,00"></label>
+            <label>Status<select name="status"><option>Disponível</option><option>Reservada</option><option>Vendida</option></select></label>
+            <label class="full">Uso permitido<input name="uso" placeholder="Imóvel, rural ou capital de giro"></label>
+            <label class="full">Observação pública<textarea name="observacaoPublica"></textarea></label>
+            <label class="checkbox-label full"><input type="checkbox" name="ocultarPublico"> Ocultar da vitrine pública</label>
+
+            <label>Nome do dono<input name="nomeDono"></label>
+            <label>Telefone do dono<input name="telefoneDono"></label>
+            <label>Grupo<input name="grupo"></label>
+            <label>Cota<input name="cota"></label>
+            <label>Valor de compra<input name="valorCompra"></label>
+            <label>Comissão<input name="comissao"></label>
+            <label>Responsável<input name="responsavel"></label>
+            <label>Documentos<input name="documentos" placeholder="Link interno ou observação"></label>
+            <label class="full">Observações internas<textarea name="observacaoInterna"></textarea></label>
+            <div class="full card-actions"><button class="button primary" type="submit"><span id="submit-label">Cadastrar carta</span></button><button class="button ghost" type="button" id="cancel-edit">Cancelar edição</button></div>
+          </form>
+        </div>
+
+        <section class="section" style="padding-bottom:24px;">
+          <h2>Cartas cadastradas</h2>
+          <div class="admin-table-wrap"><table><thead><tr><th>Carta</th><th>Crédito</th><th>Entrada</th><th>Parcelas</th><th>Status</th><th>Vitrine</th><th>Ações</th></tr></thead><tbody id="admin-cards"></tbody></table></div>
+        </section>
+
+        <section class="section" style="padding-top:24px;">
+          <h2>Leads salvos neste navegador</h2>
+          <div class="admin-table-wrap"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Carta</th><th>Data</th></tr></thead><tbody id="admin-leads"></tbody></table></div>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="container footer-grid">
+    <div>
+      <strong>X Capital Partners</strong>
+      <p>Assessoria especializada em consórcios, cartas contempladas e estratégias de crédito para compra, investimento e construção patrimonial.</p>
+    </div>
+    <div>
+      <strong>Atendimento</strong>
+      <p>WhatsApp: 14 99808 8300<br>Instagram: @xcconsorcio<br>Rua Lourenço Prado, 165, Jaú SP</p>
+    </div>
+    <div>
+      <strong>Observação</strong>
+      <p>Valores, disponibilidade e condições estão sujeitos à confirmação, análise cadastral e aprovação da administradora.</p>
+    </div>
+  </div>
+</footer>
+<script src="js/data.js"></script>
+<script src="js/site.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
