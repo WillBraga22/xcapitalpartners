@@ -66,3 +66,12 @@ Para transformar este protótipo em um sistema real, use o arquivo:
 `database/supabase_schema.sql`
 
 Ele já tem uma sugestão de estrutura para banco de dados com cartas, leads e pedidos de avaliação de cotas.
+
+## Atualização de logo
+
+Esta versão usa os arquivos em PNG transparente:
+
+- `assets/logo-xcapital-hs-preta.png` para cabeçalho em fundo claro.
+- `assets/logo-xcapital-hs-branca.png` para áreas escuras.
+
+Para publicar no Vercel, substitua os arquivos do projeto atual por esta pasta e faça novo deploy.

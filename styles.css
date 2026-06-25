@@ -748,3 +748,47 @@ td small {
     display: none;
   }
 }
+
+/* Logo atualizada em PNG transparente */
+.logo-box {
+  width: 86px;
+  height: 62px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hero-logo {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  padding: 22px;
+  min-height: 240px;
+}
+
+.hero-logo img {
+  max-height: 220px;
+  margin: 0 auto;
+}
+
+@media (max-width: 760px) {
+  .logo-box {
+    width: 70px;
+    height: 52px;
+  }
+
+  .hero-logo {
+    min-height: 190px;
+  }
+
+  .hero-logo img {
+    max-height: 175px;
+  }
+}
