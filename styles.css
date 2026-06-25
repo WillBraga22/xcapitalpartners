@@ -1076,3 +1076,42 @@ td small {
     min-width: 26px;
   }
 }
+
+
+/* Correção stack métricas mobile v3 */
+@media (max-width: 760px) {
+  .metrics {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .metric {
+    display: block;
+    padding: 16px 14px;
+    min-height: auto;
+  }
+
+  .metric strong {
+    display: block;
+    font-size: 2rem;
+    line-height: 1.05;
+    margin-bottom: 6px;
+  }
+
+  .metric span {
+    display: block;
+    font-size: 0.98rem;
+    line-height: 1.35;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .metric {
+    display: block;
+  }
+}
