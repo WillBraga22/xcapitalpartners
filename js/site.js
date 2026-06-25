@@ -1,5 +1,6 @@
 const STORAGE_KEY = "xc_cartas_contempladas";
 const LEADS_KEY = "xc_leads";
+const SELL_LEADS_KEY = "xc_sell_leads";
 
 let supabaseClient = null;
 
@@ -46,6 +47,21 @@ function toLeadRow(lead) {
     whatsapp: lead.whatsapp,
     carta_id: lead.cartaId || null,
     carta_resumo: lead.carta || "",
+    origem: "site",
+    status: "Novo"
+  };
+}
+
+function toSellLeadRow(formData) {
+  return {
+    nome: formData.get("nome"),
+    whatsapp: formData.get("whatsapp"),
+    email: formData.get("email") || null,
+    tipo: formData.get("tipo"),
+    administradora: formData.get("administradora") || null,
+    credito: formData.get("credito") || null,
+    situacao: formData.get("situacao") || null,
+    observacao: formData.get("observacao") || null,
     origem: "site",
     status: "Novo"
   };
@@ -99,6 +115,20 @@ async function saveLead(lead) {
   localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
 }
 
+async function saveSellLead(formData) {
+  const row = toSellLeadRow(formData);
+  if (supabaseClient) {
+    const { error } = await supabaseClient.from("cotas_venda").insert(row);
+    if (!error) return;
+    console.warn("Erro ao salvar avaliação de cota no Supabase. Salvando localmente.", error);
+  }
+
+  const stored = localStorage.getItem(SELL_LEADS_KEY);
+  const leads = stored ? JSON.parse(stored) : [];
+  leads.unshift({ ...row, criado_em: new Date().toISOString() });
+  localStorage.setItem(SELL_LEADS_KEY, JSON.stringify(leads));
+}
+
 function buildWhatsappLink(message) {
   return `https://wa.me/${window.XC_CONFIG.whatsapp}?text=${encodeURIComponent(message)}`;
 }
@@ -107,13 +137,17 @@ function cardMessage(card) {
   return `Olá, vi no site da X Capital a carta contemplada de ${formatCurrency(card.credito)} com entrada de ${formatCurrency(card.entrada)}. Quero mais detalhes.`;
 }
 
+function cardDetailLink(card) {
+  return `carta.html?id=${encodeURIComponent(card.id)}`;
+}
+
 async function renderFeaturedCards(limit = 3) {
   const target = document.querySelector("[data-featured-cards]");
   if (!target) return;
   target.innerHTML = `<p class="empty-state">Carregando cartas...</p>`;
 
   const cards = (await getCards())
-    .filter(card => !card.ocultarPublico && card.status !== "Vendida")
+    .filter(card => !card.ocultarPublico && !["Vendida", "Arquivada"].includes(card.status))
     .slice(0, limit);
 
   if (!cards.length) {
@@ -132,6 +166,7 @@ async function renderCardsPage() {
   const cards = await getCards();
   const filters = {
     search: document.querySelector("#search")?.value || "",
+    administradora: document.querySelector("#administradora")?.value || "",
     tipo: document.querySelector("#tipo")?.value || "",
     status: document.querySelector("#status")?.value || "",
     creditoMax: document.querySelector("#creditoMax")?.value || "",
@@ -141,9 +176,10 @@ async function renderCardsPage() {
 
   const filtered = cards.filter(card => {
     if (card.ocultarPublico) return false;
-    if (!filters.status && card.status === "Vendida") return false;
+    if (!filters.status && ["Vendida", "Arquivada"].includes(card.status)) return false;
     const text = normalizeText(`${card.tipo} ${card.administradora} ${card.uso} ${card.observacaoPublica}`);
     if (filters.search && !text.includes(normalizeText(filters.search))) return false;
+    if (filters.administradora && !normalizeText(card.administradora).includes(normalizeText(filters.administradora))) return false;
     if (filters.tipo && card.tipo !== filters.tipo) return false;
     if (filters.status && card.status !== filters.status) return false;
     if (filters.creditoMax && Number(card.credito) > Number(filters.creditoMax)) return false;
@@ -162,39 +198,72 @@ async function renderCardsPage() {
 
 function renderCard(card) {
   const statusClass = normalizeText(card.status).replace(/\s+/g, "-");
+  const reservedClass = card.status === "Reservada" ? " highlight-reserved" : "";
   return `
-    <article class="card-item">
+    <article class="card-item${reservedClass}">
       <div class="card-topline">
         <span class="chip">${card.tipo}</span>
         <span class="status ${statusClass}">${card.status}</span>
       </div>
       <h3>${card.administradora}</h3>
       <div class="price-grid">
-        <div>
-          <span>Crédito</span>
-          <strong>${formatCurrency(card.credito)}</strong>
-        </div>
-        <div>
-          <span>Entrada</span>
-          <strong>${formatCurrency(card.entrada)}</strong>
-        </div>
+        <div><span>Crédito</span><strong>${formatCurrency(card.credito)}</strong></div>
+        <div><span>Entrada</span><strong>${formatCurrency(card.entrada)}</strong></div>
       </div>
-      <div class="card-line">
-        <span>Parcelas</span>
-        <strong>${card.parcelas}</strong>
-      </div>
-      <div class="card-line">
-        <span>Uso permitido</span>
-        <strong>${card.uso}</strong>
-      </div>
+      <div class="card-line"><span>Parcelas</span><strong>${card.parcelas}</strong></div>
+      <div class="card-line"><span>Uso permitido</span><strong>${card.uso}</strong></div>
       ${card.observacaoPublica ? `<p class="note">${card.observacaoPublica}</p>` : ""}
       <div class="card-actions">
-        <a class="button primary" href="${buildWhatsappLink(cardMessage(card))}" target="_blank" rel="noopener">Tenho interesse</a>
+        <a class="button primary" href="${buildWhatsappLink(cardMessage(card))}" target="_blank" rel="noopener">Consultar disponibilidade</a>
+        <a class="button ghost" href="${cardDetailLink(card)}">Ver detalhes</a>
         <button class="button ghost" type="button" data-lead-card="${card.id}">Salvar interesse</button>
       </div>
       <p class="legal-small">Sujeito à disponibilidade, análise cadastral, confirmação das condições e aprovação da administradora.</p>
     </article>
   `;
+}
+
+async function renderCardDetailPage() {
+  const target = document.querySelector("[data-card-detail]");
+  if (!target) return;
+  const id = new URLSearchParams(window.location.search).get("id");
+  const cards = await getCards();
+  const card = cards.find(item => String(item.id) === String(id));
+
+  if (!card || card.ocultarPublico || ["Vendida", "Arquivada"].includes(card.status)) {
+    target.innerHTML = `<p class="empty-state">Carta não encontrada ou indisponível no momento.</p>`;
+    return;
+  }
+
+  const statusClass = normalizeText(card.status).replace(/\s+/g, "-");
+  target.innerHTML = `
+    <div class="detail-shell">
+      <article class="detail-panel">
+        <div class="detail-title-row">
+          <div>
+            <span class="chip">${card.tipo}</span>
+            <h2 style="margin-top:14px;">${card.administradora}</h2>
+          </div>
+          <span class="status ${statusClass}">${card.status}</span>
+        </div>
+        <div class="detail-list">
+          <div><span>Crédito</span><strong>${formatCurrency(card.credito)}</strong></div>
+          <div><span>Entrada</span><strong>${formatCurrency(card.entrada)}</strong></div>
+          <div><span>Parcelas</span><strong>${card.parcelas}</strong></div>
+          <div><span>Uso permitido</span><strong>${card.uso}</strong></div>
+          ${card.observacaoPublica ? `<div><span>Observação</span><strong>${card.observacaoPublica}</strong></div>` : ""}
+        </div>
+        <p class="legal-small">Valores, disponibilidade e condições sujeitos à confirmação, análise cadastral, garantias e aprovação da administradora.</p>
+      </article>
+      <aside class="detail-panel">
+        <h3>Interessado nessa carta?</h3>
+        <p class="note">Fale com a X Capital para confirmar se essa oportunidade ainda está disponível e entender os próximos passos.</p>
+        <div class="card-actions">
+          <a class="button primary" href="${buildWhatsappLink(cardMessage(card))}" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+          <button class="button ghost" type="button" data-lead-card="${card.id}">Salvar interesse</button>
+        </div>
+      </aside>
+    </div>`;
 }
 
 function bindLeadButtons() {
@@ -212,14 +281,7 @@ function bindLeadButtons() {
     const whatsapp = prompt("Qual seu WhatsApp?");
     if (!whatsapp) return;
 
-    await saveLead({
-      nome: name,
-      whatsapp,
-      cartaId: card.id,
-      carta: `${card.administradora} ${formatCurrency(card.credito)}`,
-      status: "Novo"
-    });
-
+    await saveLead({ nome: name, whatsapp, cartaId: card.id, carta: `${card.administradora} ${formatCurrency(card.credito)}`, status: "Novo" });
     window.open(buildWhatsappLink(cardMessage(card)), "_blank");
   });
 }
@@ -239,10 +301,13 @@ function bindFilters() {
 function bindForms() {
   const sellForm = document.querySelector("#sell-form");
   if (sellForm) {
-    sellForm.addEventListener("submit", event => {
+    sellForm.addEventListener("submit", async event => {
       event.preventDefault();
       const formData = new FormData(sellForm);
-      const message = `Olá, quero avaliar uma cota com a X Capital.\nNome: ${formData.get("nome")}\nWhatsApp: ${formData.get("whatsapp")}\nTipo: ${formData.get("tipo")}\nAdministradora: ${formData.get("administradora")}\nCrédito: ${formData.get("credito")}\nSituação: ${formData.get("situacao")}`;
+      await saveSellLead(formData);
+      const feedback = document.querySelector("#sell-feedback");
+      if (feedback) feedback.hidden = false;
+      const message = `Olá, quero avaliar uma cota com a X Capital.\nNome: ${formData.get("nome")}\nWhatsApp: ${formData.get("whatsapp")}\nTipo: ${formData.get("tipo")}\nAdministradora: ${formData.get("administradora")}\nCrédito: ${formData.get("credito")}\nSituação: ${formData.get("situacao")}\nObservação: ${formData.get("observacao") || ""}`;
       window.open(buildWhatsappLink(message), "_blank");
       sellForm.reset();
     });
@@ -272,6 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   renderFeaturedCards();
   renderCardsPage();
+  renderCardDetailPage();
   bindFilters();
   bindLeadButtons();
   bindForms();

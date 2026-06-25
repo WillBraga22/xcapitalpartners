@@ -163,3 +163,25 @@ ou
 /admin.html
 
 Observação: esta ainda é uma validação simples para MVP.
+
+
+## Versão v6 melhorias comerciais
+
+Antes de publicar esta versão, rode no Supabase SQL Editor:
+
+database/supabase_v6_melhorias.sql
+
+Novidades:
+- Botão Excluir removido do painel.
+- Botão Arquivar criado para tirar cartas da vitrine sem perder histórico.
+- Lead com status, responsável e botão de WhatsApp.
+- Página de cotas para avaliação dentro do painel.
+- Formulário Venda sua cota salva no Supabase e abre WhatsApp.
+- Página individual de cada carta em carta.html?id=ID.
+- Botão flutuante de WhatsApp.
+- Filtro por administradora na vitrine de cartas.
+- Exportação JSON inclui cartas, leads e cotas para avaliação.
+
+Acesso admin:
+Código: 4045
+Senha: xcapital4045

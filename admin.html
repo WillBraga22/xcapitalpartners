@@ -53,7 +53,7 @@
             <label>Entrada<input name="entrada" placeholder="186900,00" required></label>
             <label class="full">Parcelas<input name="parcelas" placeholder="126x de R$ 6.057,00" required></label>
             <label>Parcela para filtro<input name="parcelaBusca" placeholder="6057,00"></label>
-            <label>Status<select name="status"><option>Disponível</option><option>Reservada</option><option>Vendida</option></select></label>
+            <label>Status<select name="status"><option>Disponível</option><option>Reservada</option><option>Vendida</option><option>Arquivada</option></select></label>
             <label class="full">Uso permitido<input name="uso" placeholder="Imóvel, rural ou capital de giro"></label>
             <label class="full">Observação pública<textarea name="observacaoPublica"></textarea></label>
             <label class="checkbox-label full"><input type="checkbox" name="ocultarPublico"> Ocultar da vitrine pública</label>
@@ -72,13 +72,49 @@
         </div>
 
         <section class="section" style="padding-bottom:24px;">
-          <h2>Cartas cadastradas</h2>
+          <div class="admin-section-title">
+            <div>
+              <h2>Cartas cadastradas</h2>
+              <p class="admin-note">Cartas vendidas ou arquivadas saem da vitrine, mas continuam no histórico interno.</p>
+            </div>
+            <span class="admin-badge">Histórico preservado</span>
+          </div>
+          <div class="admin-filters">
+            <input id="admin-card-search" placeholder="Buscar carta, administradora ou responsável">
+            <select id="admin-card-status"><option value="">Todos os status</option><option>Disponível</option><option>Reservada</option><option>Vendida</option><option>Arquivada</option></select>
+            <button class="button ghost" type="button" id="admin-card-clear">Limpar filtros</button>
+          </div>
           <div class="admin-table-wrap"><table><thead><tr><th>Carta</th><th>Crédito</th><th>Entrada</th><th>Parcelas</th><th>Status</th><th>Vitrine</th><th>Ações</th></tr></thead><tbody id="admin-cards"></tbody></table></div>
         </section>
 
         <section class="section" style="padding-top:24px;">
-          <h2>Leads salvos neste navegador</h2>
-          <div class="admin-table-wrap"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>Carta</th><th>Data</th></tr></thead><tbody id="admin-leads"></tbody></table></div>
+          <div class="admin-section-title">
+            <div>
+              <h2>Leads recebidos</h2>
+              <p class="admin-note">Controle o status do atendimento e chame o cliente direto pelo WhatsApp.</p>
+            </div>
+          </div>
+          <div class="admin-filters">
+            <input id="admin-lead-search" placeholder="Buscar lead, WhatsApp ou carta">
+            <select id="admin-lead-status"><option value="">Todos os status</option><option>Novo</option><option>Em atendimento</option><option>Aguardando retorno</option><option>Negociação avançada</option><option>Fechado</option><option>Perdido</option></select>
+            <button class="button ghost" type="button" id="admin-lead-clear">Limpar filtros</button>
+          </div>
+          <div class="admin-table-wrap"><table><thead><tr><th>Lead</th><th>Carta</th><th>Data</th><th>Atendimento</th><th>Ações</th></tr></thead><tbody id="admin-leads"></tbody></table></div>
+        </section>
+
+        <section class="section" style="padding-top:24px;">
+          <div class="admin-section-title">
+            <div>
+              <h2>Cotas para avaliação</h2>
+              <p class="admin-note">Pessoas que preencheram a página “Venda sua cota”.</p>
+            </div>
+          </div>
+          <div class="admin-filters">
+            <input id="admin-sell-search" placeholder="Buscar nome, WhatsApp ou administradora">
+            <select id="admin-sell-status"><option value="">Todos os status</option><option>Novo</option><option>Em análise</option><option>Viável</option><option>Sem perfil</option><option>Convertida em carta</option></select>
+            <button class="button ghost" type="button" id="admin-sell-clear">Limpar filtros</button>
+          </div>
+          <div class="admin-table-wrap"><table><thead><tr><th>Contato</th><th>Cota</th><th>Situação</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead><tbody id="admin-sell-leads"></tbody></table></div>
         </section>
       </div>
     </div>

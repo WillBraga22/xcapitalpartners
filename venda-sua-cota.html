@@ -35,13 +35,16 @@
         <div class="form-grid">
           <label>Nome<input name="nome" required></label>
           <label>WhatsApp<input name="whatsapp" required></label>
+          <label class="full">E-mail<input name="email" type="email" placeholder="Opcional"></label>
           <label>Tipo<select name="tipo"><option>Imóvel</option><option>Veículo</option><option>Rural</option><option>Capital de giro</option></select></label>
           <label>Administradora<input name="administradora"></label>
           <label>Valor do crédito<input name="credito" placeholder="Exemplo: R$ 300.000"></label>
           <label>Situação<select name="situacao"><option>Contemplada</option><option>Não contemplada</option><option>Em atraso</option><option>Não sei informar</option></select></label>
+          <label class="full">Observação<textarea name="observacao" placeholder="Informe parcelas pagas, saldo devedor, valor desejado ou algum detalhe importante."></textarea></label>
           <div class="full"><button class="button primary" type="submit">Enviar para avaliação</button></div>
         </div>
         <p>Ao enviar seus dados, você autoriza o contato da X Capital para atendimento sobre consórcios, cartas contempladas e soluções de crédito.</p>
+      <div id="sell-feedback" class="sell-success" hidden>Recebemos as informações. Agora você será direcionado para o WhatsApp.</div>
       </form>
       <div class="content-card"><h2>Como avaliamos</h2><p>O primeiro passo é entender administradora, crédito, parcelas, situação da cota e documentação. Depois, a equipe avalia se existe potencial comercial e quais informações podem ser divulgadas com segurança.</p><p>Dados sensíveis, como grupo, cota, dono da carta e documentos, não aparecem na vitrine pública.</p></div>
     </div>
@@ -75,6 +78,8 @@
 <script src="js/supabase-config.js"></script>
 <script src="js/data.js"></script>
 <script src="js/site.js"></script>
+
+<a class="floating-whatsapp" href="https://wa.me/5514998088300?text=Ol%C3%A1%2C%20vim%20pelo%20site%20da%20X%20Capital.%20Quero%20falar%20com%20um%20consultor." target="_blank" rel="noopener"><img src="assets/icon-whatsapp.png" alt="WhatsApp"> Chamar no WhatsApp</a>
 
 </body>
 </html>
